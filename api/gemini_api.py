@@ -1,6 +1,6 @@
 import google.generativeai as genai
 import json
-
+import os
 # Configura la tua chiave API di Gemini
 # NOTA: Per maggiore sicurezza, si consiglia di gestire la chiave API
 # tramite variabili d'ambiente o altri sistemi di gestione dei secret.
