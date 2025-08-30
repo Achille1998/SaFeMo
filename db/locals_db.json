@@ -1,0 +1,12 @@
+{
+  "bars":
+    {"bar_id":
+    {
+      "name": "Bar Example",
+      "address": "123 Example St, City, Country",
+      "instagram": "https://www.instagram.com/bar_example",
+      "latitude": 12.345678,
+      "longitude": 98.7654321
+    }
+  }
+}
