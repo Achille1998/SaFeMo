@@ -1,41 +1,55 @@
 import json
-from models import Place
-from instaScrapping.api.google_maps_api import GoogleApi
-from instaScrapping.api.apify_api import InstaScraper
+from typing import Dict, Optional, Union
+
+from marshmallow import ValidationError
+
+from db.models import Place
 
 
 class LocalsDAO:
-    def __init__(self):
-        self.google_api = GoogleApi()
-        self.apify_client = InstaScraper()
-        with open("instaScrapping/locals_db.json", "r") as f:
+
+    @staticmethod
+    def load_db() -> Optional[Dict[str, Dict[str, Place]]]:
+        """ load the db file and return a dict of places """
+        with open("db/locals_db.json", "r") as f:
             try:
-                self.locals = {k: Place.load(v) for k, v in json.load(f).get('locals', {}).items()}
+                db = json.load(f)
+                for place_type, places in db.items():
+                    for place_id, place in places.items():
+                        try:
+                            db[place_type].update({place_id: Place.load(place)})
+                        except ValidationError:
+                            pass
             except json.JSONDecodeError:
-                self.locals = {}
+                return {}
+        return db
 
-    def get_bars_details(self, latitude, longitude, radius):
-        bars = self.google_api.find_bars(latitude=latitude, longitude=longitude, radius=radius)
-        bars_details = []
-        for bar in bars:
-            if bar_in_db := self.locals.get(bar.id):
-                pass
-            bars_details.append(bar_in_db)
-            insta_url = self.apify_client.get_profile(bar.name + " " + bar.address)
+    def get_places_details(self, place_type: str, new_places: Dict[str, Place]):
+        """ update the db file with new places """
+        db = self.load_db()
+        if not (places := db.get(place_type)):
+            print("no data found in db for this place type")
+            return new_places
+        for p_id, p in new_places.items():
+            if p_id in db[place_type]:
+                p.update(places.get(p_id).dump())
+        return new_places
 
-    def update_bars_details(self):
-        self.google_api.find_bars()
-        with open("instaScrapping/locals_db.json", "w") as f:
-            json.dump(self.locals, f, indent=4)
+    def dump_db(self, place_type: str, new_places: Dict[str, Union[dict, Place]]):
+        """ update the db file with new places """
+        db = self.load_db()
+        for p_id, p in db.get(place_type, {}).items():
+            if isinstance(place := new_places.get(p_id, {}), Place):
+                place = place.dump()
+            p.update(place)
+        with open("db/locals_db.json", "w") as f:
+            json.dump(self.db_to_dict(db), f, indent=4)
 
-    def get_local_by_name(self, name):
-        for bar in self.bars:
-            if bar['name'].lower() == name.lower():
-                return bar
-        return None
-
-    def get_all_bars(self):
-        return self.bars
-
-with open("instaScrapping/bar_db.json", "r") as f:
-    bars = json.load(f)
+    @staticmethod
+    def db_to_dict(db: Dict[str, Union[dict, Place]]) -> Dict[str, Dict[str, dict]]:
+        """ return the db as a dict """
+        for place_type, places in db.items():
+            for place_id, place in places.items():
+                if isinstance(place, Place):
+                    db[place_type].update({place_id: place.dump()})
+        return db

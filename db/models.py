@@ -1,6 +1,7 @@
 import json
 from abc import ABC
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import ClassVar, Type, Mapping, Any, List
 
 import marshmallow
@@ -21,10 +22,7 @@ class BasicModel(ABC):
         return self.__getattribute__(key)
 
     def dump(self) -> dict:
-        if not self.Schema().ordered:
-            return self.Schema().dump(self)
-        else:
-            return dict(self.Schema().dump(self))
+        return dict(self.Schema().dump(self))
 
     def dumps(self) -> str:
         return self.Schema().dumps(self)
@@ -62,36 +60,45 @@ class BasicModel(ABC):
 @marshmallow_dataclass.dataclass(base_schema=BaseSchema)
 class Event(BasicModel):
     name: str = None
-    date: float = None
-    start_time: float = None
-    end_time: float = None
-    price: float = 0.0
+    start_time: datetime = None
+    end_time: datetime = None
+    price: float = None
     description: str = ""
+
+    @classmethod
+    def load_from_google_gemini(cls, event: dict):
+        m = dict(name=event.get('name', ''),
+                 start_time=datetime.fromisoformat(event.get('start_time')) if event.get('start_time') else None,
+                 end_time=datetime.fromisoformat(event.get('end_time')) if event.get('end_time') else None,
+                 price=event.get('price', 0.0),
+                 description=event.get('description', ''))
+        return cls.load(m)
 
 
 @marshmallow_dataclass.dataclass(base_schema=BaseSchema)
 class Place(BasicModel):
     name: str
+    id: str
     address: str
-    rating: float
     type: List[str]
-    longitude: float
-    latitude: float
+    opening_hours: dict = field(default_factory=dict)  # e.g., {'open_now': True, 'periods': [...], 'weekday_text': [...]}
+    rating: float = 0.0
+    longitude: float = None
+    latitude: float = None
     instagram_URL: str = ""
     events: List[Event] = field(default_factory=list)  # list of events
 
     @classmethod
     def load_from_google_place(cls, place: dict):
-        map = dict(name=place.get('name', ''),
-                   address=place.get('vicinity', ''),
-                   rating=place.get('rating', 0.0),
+        map = dict(name=place.get('displayName', {}).get("text", ''),
+                   id=place.get('id', ''),
+                   address=place.get('formattedAddress', ''),
                    type=place.get('types', []),
-                   longitude=place.get('geometry', {}).get('location', {}).get('lng', 0.0),
-                   latitude=place.get('geometry', {}).get('location', {}).get('lat', 0.0))
+                   opening_hours=place.get('regularOpeningHours', {}),)
         return cls.load(map)
 
-    @property
-    def id(self):
-        return f"{self.name}_{self.address}".replace(" ", "_").lower()
-
+    def update(self, place_data: dict):
+        for k, v in place_data.items():
+            if v is not None:
+                self.__setattr__(k, v)
 

@@ -1,12 +1,18 @@
 {
-  "bars":
-    {"bar_id":
-    {
-      "name": "Bar Example",
-      "address": "123 Example St, City, Country",
-      "instagram": "https://www.instagram.com/bar_example",
-      "latitude": 12.345678,
-      "longitude": 98.7654321
+    "bars": {
+        "bar_id": {
+            "name": "Bar Example",
+            "id": "bar_id",
+            "address": "123 Example St, City, Country",
+            "type": [
+                "bar"
+            ],
+            "opening_hours": {},
+            "rating": 0.0,
+            "longitude": 98.7654321,
+            "latitude": 12.345678,
+            "instagram_URL": "",
+            "events": []
+        }
     }
-  }
 }

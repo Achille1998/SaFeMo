@@ -6,12 +6,18 @@ e recuperare i dati estratti.
 
 from apify_client import ApifyClient
 import os
+from dotenv import load_dotenv
+
+from db.models import Place
+
+load_dotenv()
+
 APIFY_API_TOKEN = os.getenv('APIFY_API_TOKEN')
 TASK_IDs = {"FindProfile": "eLhqgdpeZhnhVArft",
             "FindPostsFromURLS": "ZDiUAjexvWt4t2NSh"}
 
 
-class InstaScraper:
+class ApifyApiInterface:
     def __init__(self):
         try:
             self.apify_client = ApifyClient(APIFY_API_TOKEN)
@@ -61,11 +67,8 @@ class InstaScraper:
             "enhanceUserSearchWithFacebookPage": False,
             "isUserReelFeedURL": False,
             "isUserTaggedFeedURL": False,
-            "onlyPostsNewerThan": "1 month",
-            "resultsLimit": 1,
-            "resultsType": "posts",
             "search": research_text,
-            "searchLimit": 10,
+            "searchLimit": 1,
             "searchType": "user"
         }
         TASK_ID = TASK_IDs["FindProfile"]
@@ -88,3 +91,8 @@ class InstaScraper:
         except Exception as e:
             print(f"❌ Errore durante il recupero dei risultati: {e}")
 
+    def get_profile_from_place(self, place: Place):
+        return self.get_profile(place.name + " " + place.address)
+
+    def get_posts_from_places(self, places: list[Place]):
+        self.get_posts([place.instagram_URL for place in places])
